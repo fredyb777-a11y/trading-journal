@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Journal Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#f0f2f5; --border:#e2e6ea; --border2:#cdd3da;
+  --txt:#1a1d23; --txt2:#5a6270; --txt3:#8e97a5;
+  --accent:#4361ee; --accent-l:#eef0fd;
+  --green:#10b981; --green-l:#ecfdf5; --green-b:#a7f3d0;
+  --red:#ef4444; --red-l:#fef2f2; --red-b:#fca5a5;
+  --amber:#f59e0b; --amber-l:#fffbeb; --amber-b:#fcd34d;
+  --blue:#3b82f6; --blue-l:#eff6ff;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  --r:10px; --r-lg:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:15px;}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;}
+
+/* CONFIG */
+#cfg{position:fixed;inset:0;background:#fff;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.cfg-box{max-width:500px;width:100%;padding:8px 0;}
+.cfg-logo{font-size:24px;font-weight:700;margin-bottom:4px;}
+.cfg-logo b{color:var(--accent);}
+.cfg-sub{color:var(--txt2);font-size:13px;margin-bottom:28px;line-height:1.6;}
+.cfg-steps{background:var(--surface2);border-radius:var(--r-lg);padding:20px;margin-bottom:20px;}
+.cfg-step{display:flex;gap:12px;margin-bottom:16px;}
+.cfg-step:last-child{margin-bottom:0;}
+.cfg-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.cfg-step-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.cfg-step-desc{font-size:12px;color:var(--txt2);line-height:1.6;}
+.cfg-step-desc a{color:var(--accent);}
+.cfg-code{background:#1e293b;color:#7dd3fc;font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 12px;border-radius:6px;margin-top:6px;line-height:1.6;white-space:pre-wrap;word-break:break-all;}
+.cfg-input{width:100%;border:1.5px solid var(--border2);border-radius:var(--r);padding:11px 14px;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--txt);margin-top:8px;background:#fff;transition:border .2s;}
+.cfg-input:focus{outline:none;border-color:var(--accent);}
+.cfg-input::placeholder{color:var(--txt3);}
+.cfg-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;font-family:'Inter',sans-serif;transition:background .2s;}
+.cfg-btn:hover{background:#3451d1;}
+.cfg-note{font-size:11px;color:var(--txt3);text-align:center;margin-top:10px;}
+.cfg-tag{display:inline-block;background:var(--accent-l);color:var(--accent);border-radius:4px;padding:1px 6px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+
+/* APP */
+#app{display:none;flex-direction:column;min-height:100vh;}
+#app.visible{display:flex;}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.header-logo{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;}
+.logo-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);}
+.header-logo span{color:var(--accent);}
+.header-right{display:flex;align-items:center;gap:8px;}
+.sync-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--txt2);cursor:pointer;transition:all .2s;}
+.sync-pill:hover{border-color:var(--accent);color:var(--accent);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.sync-dot.spin{background:var(--amber);animation:blink 1s infinite;}
+.sync-dot.err{background:var(--red);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.cfg-link{font-size:18px;cursor:pointer;padding:5px;border-radius:6px;color:var(--txt3);transition:all .2s;}
+.cfg-link:hover{background:var(--surface2);color:var(--txt2);}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-item{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:0 14px;height:46px;font-size:13px;font-weight:500;color:var(--txt2);border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif;white-space:nowrap;}
+.nav-item:hover{color:var(--txt);}
+.nav-item.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* MAIN */
+.main{flex:1;padding:20px 16px 40px;max-width:860px;margin:0 auto;width:100%;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-title{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* ALERTS */
+.alert{border-radius:var(--r);padding:12px 16px;font-size:13px;line-height:1.55;margin-bottom:14px;border:1px solid;}
+.alert b{font-weight:600;}
+.alert-blue{background:var(--blue-l);border-color:#bfdbfe;color:#1e40af;}
+.alert-green{background:var(--green-l);border-color:var(--green-b);color:#065f46;}
+.alert-amber{background:var(--amber-l);border-color:var(--amber-b);color:#92400e;}
+.alert-red{background:var(--red-l);border-color:var(--red-b);color:#991b1b;}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);}
+.metric-label{font-size:11px;color:var(--txt3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.metric-val{font-size:22px;font-weight:700;color:var(--txt);font-family:'JetBrains Mono',monospace;line-height:1.2;}
+.metric-val.green{color:var(--green);}
+.metric-val.red{color:var(--red);}
+.metric-val.accent{color:var(--accent);}
+.metric-sub{font-size:11px;color:var(--txt3);margin-top:4px;}
+
+/* FORM */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.fg1{margin-bottom:12px;}
+.full{grid-column:1/-1;}
+.flabel{font-size:11px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px;}
+.finput,.fselect,.ftextarea{width:100%;border:1.5px solid var(--border);border-radius:var(--r);padding:10px 12px;font-size:14px;color:var(--txt);font-family:'Inter',sans-serif;background:#fff;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.finput:focus,.fselect:focus,.ftextarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(67,97,238,.1);}
+.finput::placeholder,.ftextarea::placeholder{color:var(--txt3);}
+.ftextarea{resize:vertical;min-height:80px;}
+
+/* EMOTION */
+.emo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.emo-opt{border:1.5px solid var(--border);border-radius:var(--r);padding:9px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--txt2);cursor:pointer;transition:all .15s;background:#fff;user-select:none;}
+.emo-opt:hover{border-color:var(--accent);color:var(--accent);}
+.emo-opt.active{background:var(--accent-l);border-color:var(--accent);color:var(--accent);}
+
+/* OUTCOME */
+.outcome-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.outcome-opt{border:1.5px solid var(--border);border-radius:var(--r);padding:11px 8px;text-align:center;font-size:13px;font-weight:500;color:var(--txt2);cursor:pointer;transition:all .15s;background:#fff;}
+.outcome-opt:hover{border-color:var(--border2);}
+.outcome-opt.tp{border-color:var(--green-b);color:var(--green);background:var(--green-l);}
+.outcome-opt.sl{border-color:var(--red-b);color:var(--red);background:var(--red-l);}
+.outcome-opt.be{border-color:var(--amber-b);color:var(--amber);background:var(--amber-l);}
+.outcome-opt.man{border-color:#c7d2fe;color:var(--blue);background:var(--blue-l);}
+
+/* PLAN */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.plan-opt{border:1.5px solid var(--border);border-radius:var(--r);padding:10px 6px;text-align:center;font-size:13px;font-weight:500;color:var(--txt2);cursor:pointer;transition:all .15s;background:#fff;}
+.plan-opt.sel-si{background:var(--green-l);border-color:var(--green-b);color:var(--green);}
+.plan-opt.sel-par{background:var(--amber-l);border-color:var(--amber-b);color:var(--amber);}
+.plan-opt.sel-no{background:var(--red-l);border-color:var(--red-b);color:var(--red);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);border:none;cursor:pointer;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#3451d1;}
+.btn-outline{background:#fff;border:1.5px solid var(--border2);color:var(--txt2);}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:var(--red-l);border:1px solid var(--red-b);color:var(--red);}
+.btn-danger:hover{background:#fee2e2;}
+.btn-sm{padding:7px 12px;font-size:12px;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;}
+
+/* DIVIDERS */
+.sep{height:1px;background:var(--border);margin:18px 0;}
+.section-label{font-size:11px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+
+/* TRADE LIST */
+.trade-list{display:flex;flex-direction:column;gap:10px;}
+.trade-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);transition:box-shadow .2s;}
+.trade-item:hover{box-shadow:var(--shadow-md);}
+.trade-badge{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.trade-badge.tp{background:var(--green-l);}
+.trade-badge.sl{background:var(--red-l);}
+.trade-badge.be{background:var(--amber-l);}
+.trade-badge.manual{background:var(--blue-l);}
+.trade-info{flex:1;min-width:0;}
+.trade-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;}
+.trade-par{font-size:14px;font-weight:600;}
+.trade-dir{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;}
+.trade-dir.long{background:var(--green-l);color:var(--green);}
+.trade-dir.short{background:var(--red-l);color:var(--red);}
+.trade-meta{font-size:12px;color:var(--txt3);line-height:1.5;}
+.trade-pnl{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+.trade-pnl.pos{color:var(--green);}
+.trade-pnl.neg{color:var(--red);}
+.trade-pnl.zero{color:var(--txt3);}
+.trade-del{background:none;border:none;color:var(--txt3);cursor:pointer;padding:6px;border-radius:6px;font-size:16px;flex-shrink:0;transition:all .2s;}
+.trade-del:hover{background:var(--red-l);color:var(--red);}
+
+/* CHECKLIST */
+.chk-progress{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.chk-bar-wrap{flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;}
+.chk-bar{height:100%;background:var(--accent);border-radius:5px;transition:width .3s,background .3s;}
+.chk-pct{font-size:14px;font-weight:700;min-width:40px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.chk-group{margin-bottom:20px;}
+.chk-group-title{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.chk-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:4px;}
+.chk-item:last-child{border-bottom:none;}
+.chk-box{width:22px;height:22px;border:2px solid var(--border2);border-radius:6px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.chk-box.done{background:var(--green);border-color:var(--green);}
+.chk-check{display:none;color:#fff;font-size:13px;font-weight:700;line-height:1;}
+.chk-box.done .chk-check{display:block;}
+.chk-text{font-size:13px;line-height:1.55;color:var(--txt);}
+.chk-text b{font-weight:600;}
+.chk-item.done .chk-text{color:var(--txt3);text-decoration:line-through;}
+
+/* STRATEGIES */
+.strat-list{display:flex;flex-direction:column;gap:12px;}
+.strat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);}
+.strat-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.strat-name{font-size:15px;font-weight:600;}
+.strat-tf{background:var(--accent-l);color:var(--accent);border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;}
+.strat-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;}
+.strat-field-label{font-size:10px;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.strat-field-val{font-size:13px;color:var(--txt);line-height:1.55;}
+
+/* STAT BARS */
+.stat-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.stat-bar-label{font-size:12px;color:var(--txt2);width:120px;flex-shrink:0;}
+.stat-bar-wrap{flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.stat-bar{height:100%;border-radius:4px;transition:width .5s;}
+.stat-bar-val{font-size:12px;font-weight:600;min-width:44px;text-align:right;font-family:'JetBrains Mono',monospace;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--txt);color:#fff;border-radius:var(--r);padding:12px 22px;font-size:13px;font-weight:500;z-index:999;transition:transform .3s;box-shadow:var(--shadow-md);max-width:320px;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.green{background:var(--green);}
+.toast.red{background:var(--red);}
+
+/* LOADING */
+.loader{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:150;display:none;align-items:center;justify-content:center;}
+.loader.show{display:flex;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY */
+.empty{text-align:center;padding:36px 20px;color:var(--txt3);}
+.empty-icon{font-size:36px;margin-bottom:8px;}
+.empty-text{font-size:14px;color:var(--txt2);margin-bottom:4px;}
+.empty-sub{font-size:12px;}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  html{font-size:14px;}
+  .main{padding:14px 12px 32px;}
+  .card{padding:16px;}
+  .fg{grid-template-columns:1fr;}
+  .fg3{grid-template-columns:1fr 1fr;}
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .emo-grid{grid-template-columns:repeat(2,1fr);}
+  .strat-body{grid-template-columns:1fr;}
+  .metric-val{font-size:18px;}
+  .nav-item{padding:0 12px;font-size:12px;}
+}
+@media(max-width:400px){
+  .fg3{grid-template-columns:1fr;}
+  .plan-grid{grid-template-columns:1fr;}
+  .outcome-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div id="cfg">
+  <div class="cfg-box">
+    <div class="cfg-logo">📊 Trading<b>Journal</b> Pro</div>
+    <p class="cfg-sub">Tu diario de trading conectado a Google Drive. Accede desde cualquier dispositivo. Tus datos siempre guardados.</p>
+
+    <div class="cfg-steps">
+      <div class="cfg-step">
+        <div class="cfg-num">1</div>
+        <div>
+          <div class="cfg-step-title">Crea la hoja de cálculo</div>
+          <div class="cfg-step-desc">Ve a <a href="https://sheets.google.com" target="_blank">sheets.google.com</a>, crea una hoja nueva y ponle el nombre <b>"Trading Journal"</b>. Copia el ID de la URL (la parte larga entre /d/ y /edit).</div>
+        </div>
+      </div>
+      <div class="cfg-step">
+        <div class="cfg-num">2</div>
+        <div>
+          <div class="cfg-step-title">Abre Apps Script</div>
+          <div class="cfg-step-desc">Ve a <a href="https://script.google.com" target="_blank">script.google.com</a> → Nuevo proyecto. Borra todo el código que viene por defecto. Pega el contenido del archivo <span class="cfg-tag">Code.gs</span> que descargaste. Guarda con Ctrl+S.</div>
+        </div>
+      </div>
+      <div class="cfg-step">
+        <div class="cfg-num">3</div>
+        <div>
+          <div class="cfg-step-title">Vincula tu hoja</div>
+          <div class="cfg-step-desc">En Apps Script, ve a <b>Configuración del proyecto (⚙)</b> → <b>Cambiar proyecto de Google Sheets</b> → pega el ID de tu hoja. O edita esta línea en Code.gs:</div>
+          <div class="cfg-code">SpreadsheetApp.getActiveSpreadsheet()
+// → funciona automático si vinculas el proyecto</div>
+        </div>
+      </div>
+      <div class="cfg-step">
+        <div class="cfg-num">4</div>
+        <div>
+          <div class="cfg-step-title">Despliega como Web App</div>
+          <div class="cfg-step-desc">En Apps Script: <b>Implementar → Nueva implementación</b><br>• Tipo: <b>Aplicación web</b><br>• Ejecutar como: <b>Yo</b><br>• Acceso: <b>Cualquier persona</b><br>Haz clic en <b>Implementar</b>, autoriza y copia la URL.</div>
+        </div>
+      </div>
+      <div class="cfg-step">
+        <div class="cfg-num">5</div>
+        <div>
+          <div class="cfg-step-title">Pega la URL aquí</div>
+          <input class="cfg-input" id="url-input" type="url" placeholder="https://script.google.com/macros/s/AKfy.../exec">
+        </div>
+      </div>
+    </div>
+
+    <button class="cfg-btn" onclick="saveConfig()">Conectar y comenzar →</button>
+    <p class="cfg-note">🔒 Tus datos se guardan únicamente en tu Google Drive. Esta app no almacena ni comparte ninguna información.</p>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loader" id="loader"><div class="spinner"></div></div>
+
+<!-- APP -->
+<div id="app">
+  <header class="header">
+    <div class="header-logo"><div class="logo-dot"></div>Trading<span>Journal</span></div>
+    <div class="header-right">
+      <div class="sync-pill" onclick="syncAll()">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-txt">Sincronizado</span>
+      </div>
+      <div class="cfg-link" onclick="resetConfig()" title="Cambiar configuración">⚙️</div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <button class="nav-item active" onclick="nav('dashboard')"   id="nav-dashboard">📊 Dashboard</button>
+    <button class="nav-item"        onclick="nav('registrar')"   id="nav-registrar">➕ Registrar</button>
+    <button class="nav-item"        onclick="nav('historial')"   id="nav-historial">📋 Historial</button>
+    <button class="nav-item"        onclick="nav('checklist')"   id="nav-checklist">✅ Checklist</button>
+    <button class="nav-item"        onclick="nav('estrategias')" id="nav-estrategias">🎯 Estrategias</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Operaciones</div><div class="metric-val accent" id="m-total">—</div></div>
+        <div class="metric"><div class="metric-label">Win rate</div><div class="metric-val" id="m-wr">—</div></div>
+        <div class="metric"><div class="metric-label">P&amp;L total</div><div class="metric-val" id="m-pnl">—</div></div>
+        <div class="metric"><div class="metric-label">Ratio R/B</div><div class="metric-val accent" id="m-ratio">—</div><div class="metric-sub">Ganancia/Pérdida media</div></div>
+        <div class="metric"><div class="metric-label">Siguió el plan</div><div class="metric-val" id="m-plan">—</div></div>
+        <div class="metric"><div class="metric-label">Mejor par</div><div class="metric-val accent" id="m-par" style="font-size:16px">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📈 Rendimiento</div>
+        <div class="stat-bar-row"><span class="stat-bar-label">Win rate</span><div class="stat-bar-wrap"><div class="stat-bar" id="bar-wr" style="width:0%;background:var(--green)"></div></div><span class="stat-bar-val" id="lbar-wr">0%</span></div>
+        <div class="stat-bar-row"><span class="stat-bar-label">Adherencia al plan</span><div class="stat-bar-wrap"><div class="stat-bar" id="bar-plan" style="width:0%;background:var(--accent)"></div></div><span class="stat-bar-val" id="lbar-plan">0%</span></div>
+        <div class="stat-bar-row"><span class="stat-bar-label">Ganancia promedio</span><div class="stat-bar-wrap"><div class="stat-bar" id="bar-avgw" style="width:0%;background:var(--green)"></div></div><span class="stat-bar-val" id="lbar-avgw">$0</span></div>
+        <div class="stat-bar-row"><span class="stat-bar-label">Pérdida promedio</span><div class="stat-bar-wrap"><div class="stat-bar" id="bar-avgl" style="width:0%;background:var(--red)"></div></div><span class="stat-bar-val" id="lbar-avgl">$0</span></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💡 Insight personalizado</div>
+        <div id="insight-box" class="alert alert-blue">Registra al menos 10 operaciones para obtener análisis personalizados de tu trading.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🕐 Últimas operaciones</div>
+        <div id="recent-list"><div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin operaciones aún</div><div class="empty-sub">Ve a "Registrar" para agregar tu primer trade</div></div></div>
+      </div>
+    </div>
+
+    <!-- REGISTRAR -->
+    <div class="view" id="view-registrar">
+      <div class="card">
+        <div class="card-title">➕ Nueva operación</div>
+
+        <div class="section-label">Datos básicos</div>
+        <div class="fg">
+          <div><label class="flabel">Fecha y hora</label><input class="finput" type="datetime-local" id="f-fecha"></div>
+          <div><label class="flabel">Par / Instrumento</label>
+            <select class="fselect" id="f-par">
+              <option value="">— Selecciona —</option>
+              <option>EUR/USD</option><option>USD/JPY</option><option>GBP/USD</option><option>USD/CHF</option><option>AUD/USD</option>
+              <option>US30 (Dow Jones)</option><option>NAS100 (Nasdaq)</option><option>US500 (S&P500)</option>
+              <option value="otro">✏️ Otro (escribir abajo)</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg1"><label class="flabel">Par personalizado (si elegiste "Otro")</label><input class="finput" id="f-par-custom" placeholder="Ej: GOLD, BTCUSD, GBP/JPY..."></div>
+        <div class="fg">
+          <div><label class="flabel">Dirección</label>
+            <select class="fselect" id="f-dir">
+              <option value="compra">▲ Compra (Largo)</option>
+              <option value="venta">▼ Venta (Corto)</option>
+            </select>
+          </div>
+          <div><label class="flabel">Estrategia usada</label><select class="fselect" id="f-estrategia"><option value="">— Ninguna / General —</option></select></div>
+        </div>
+        <div class="fg3">
+          <div><label class="flabel">Precio entrada</label><input class="finput" type="number" step="0.00001" id="f-entrada" placeholder="1.08500"></div>
+          <div><label class="flabel">Stop Loss</label><input class="finput" type="number" step="0.00001" id="f-sl" placeholder="1.08250"></div>
+          <div><label class="flabel">Take Profit</label><input class="finput" type="number" step="0.00001" id="f-tp" placeholder="1.09000"></div>
+        </div>
+        <div class="fg">
+          <div><label class="flabel">Tamaño de lote</label><input class="finput" type="number" step="0.01" id="f-lote" placeholder="0.01"></div>
+          <div><label class="flabel">Resultado en $ (+ ganancia / - pérdida)</label><input class="finput" type="number" step="0.01" id="f-resultado" placeholder="Ej: 12.50 o -8.00"></div>
+        </div>
+
+        <div class="sep"></div>
+        <div class="section-label">Resultado de la operación</div>
+        <div class="outcome-grid">
+          <div class="outcome-opt" onclick="selectOutcome(this,'tp')">✅ Take Profit alcanzado</div>
+          <div class="outcome-opt" onclick="selectOutcome(this,'sl')">🛑 Stop Loss activado</div>
+          <div class="outcome-opt" onclick="selectOutcome(this,'be')">⚪ Cerrada en breakeven</div>
+          <div class="outcome-opt" onclick="selectOutcome(this,'man')">🔶 Cierre manual anticipado</div>
+        </div>
+        <input type="hidden" id="f-outcome">
+
+        <div class="sep"></div>
+        <div class="section-label">Razón de la entrada (setup)</div>
+        <div class="fg1"><textarea class="ftextarea" id="f-razon" placeholder="¿Qué viste? Describe el setup: EMA 20 retroceso + soporte H4 en 1.0840 + vela martillo en M15 + RSI 53..."></textarea></div>
+
+        <div class="sep"></div>
+        <div class="section-label">Estado emocional al entrar</div>
+        <div class="emo-grid">
+          <div class="emo-opt" onclick="selectEmo(this,'Calmado')">😌 Calmado</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Ansioso')">😰 Ansioso</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Confiado')">💪 Confiado</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Con miedo')">😨 Con miedo</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Eufórico')">🤩 Eufórico</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Frustrado')">😤 Frustrado</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Neutral')">😐 Neutral</div>
+          <div class="emo-opt" onclick="selectEmo(this,'Impaciente')">⏰ Impaciente</div>
+        </div>
+        <input type="hidden" id="f-emocion">
+
+        <div class="sep"></div>
+        <div class="section-label">¿Seguiste el plan al 100%?</div>
+        <div class="plan-grid">
+          <div class="plan-opt" onclick="selectPlan(this,'si')">✅ Sí, completamente</div>
+          <div class="plan-opt" onclick="selectPlan(this,'parcial')">🔶 Parcialmente</div>
+          <div class="plan-opt" onclick="selectPlan(this,'no')">❌ No lo seguí</div>
+        </div>
+        <input type="hidden" id="f-plan">
+
+        <div class="sep"></div>
+        <div class="section-label">Lección aprendida / Observación</div>
+        <div class="fg1"><textarea class="ftextarea" id="f-leccion" placeholder="¿Qué harías diferente? ¿Qué salió bien o mal? ¿Qué patrón notaste?..."></textarea></div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="guardarTrade()">💾 Guardar operación</button>
+          <button class="btn btn-outline" onclick="limpiarForm()">🗑️ Limpiar formulario</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="view" id="view-historial">
+      <div class="card">
+        <div class="card-title">📋 Historial completo</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <select class="fselect" id="filter-outcome" style="flex:1;min-width:130px" onchange="renderHistorial()">
+            <option value="">Todos los resultados</option>
+            <option value="tp">✅ Take Profit</option>
+            <option value="sl">🛑 Stop Loss</option>
+            <option value="be">⚪ Breakeven</option>
+            <option value="manual">🔶 Manual</option>
+          </select>
+          <select class="fselect" id="filter-par" style="flex:1;min-width:130px" onchange="renderHistorial()">
+            <option value="">Todos los pares</option>
+          </select>
+        </div>
+        <div id="historial-list"></div>
+      </div>
+    </div>
+
+    <!-- CHECKLIST -->
+    <div class="view" id="view-checklist">
+      <div class="card">
+        <div class="card-title">✅ Checklist pre-trade</div>
+        <div class="alert alert-amber"><b>Regla:</b> Si algún punto no se cumple → <b>no entres</b>. Espera el próximo setup perfecto.</div>
+
+        <div class="chk-progress">
+          <div class="chk-bar-wrap"><div class="chk-bar" id="chk-bar" style="width:0%"></div></div>
+          <span class="chk-pct" id="chk-pct">0%</span>
+        </div>
+
+        <div class="chk-group">
+          <div class="chk-group-title">📊 Condiciones de mercado</div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Tendencia clara:</b> EMA 20 está sobre/bajo EMA 50 en H1 con separación visible</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Zona de valor:</b> El precio retrocedió a la EMA 20 (no estás persiguiendo el precio)</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Confluencia:</b> El nivel de entrada coincide con un soporte/resistencia marcado en H4</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Vela de confirmación:</b> Hay una vela de reversión clara que ya cerró en M15</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>RSI acompaña:</b> RSI mayor a 50 en compras · RSI menor a 50 en ventas</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Sin noticias:</b> No hay eventos de bandera roja en las próximas 2 horas (revisar Forexfactory)</div></div>
+        </div>
+
+        <div class="chk-group">
+          <div class="chk-group-title">💰 Gestión de riesgo</div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>SL definido:</b> Sé exactamente dónde va mi Stop Loss antes de abrir la operación</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Ratio mínimo 1:2:</b> Mi Take Profit es al menos el doble de la distancia al Stop Loss</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Tamaño correcto:</b> El riesgo en dólares no supera el 1–2% de mi capital total</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Límite diario disponible:</b> No he perdido más del 3% del capital hoy</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Horario correcto:</b> Estoy operando en sesión Londres (3–11 AM COL) o apertura NY (9:30–11:30 AM COL)</div></div>
+        </div>
+
+        <div class="chk-group">
+          <div class="chk-group-title">🧠 Estado psicológico</div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Estoy calmado:</b> No estoy operando por rabia, euforia, aburrimiento ni prisa</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Acepto el riesgo:</b> Estoy preparado para perder este trade sin buscar revenge trading</div></div>
+          <div class="chk-item" onclick="toggleChk(this)"><div class="chk-box"><span class="chk-check">✓</span></div><div class="chk-text"><b>Setup 100% claro:</b> Podría explicarle este trade a otro trader con total convicción y claridad</div></div>
+        </div>
+
+        <button class="btn btn-outline" onclick="resetChecklist()">🔄 Reiniciar checklist</button>
+      </div>
+    </div>
+
+    <!-- ESTRATEGIAS -->
+    <div class="view" id="view-estrategias">
+      <div class="card">
+        <div class="card-title">🎯 Nueva estrategia</div>
+        <div class="fg">
+          <div><label class="flabel">Nombre de la estrategia</label><input class="finput" id="s-nombre" placeholder="Ej: EMA Retroceso + Confluencia"></div>
+          <div><label class="flabel">Timeframe principal</label>
+            <select class="fselect" id="s-tf">
+              <option>M1</option><option>M5</option><option>M15</option><option>M30</option>
+              <option selected>H1</option><option>H4</option><option>D1</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg1"><label class="flabel">Descripción general</label><textarea class="ftextarea" id="s-desc" placeholder="¿En qué consiste esta estrategia? ¿Cuándo y por qué funciona?"></textarea></div>
+        <div class="fg1"><label class="flabel">Indicadores utilizados</label><input class="finput" id="s-ind" placeholder="Ej: EMA 20, EMA 50, RSI 14, Soporte/Resistencia manual"></div>
+        <div class="fg1"><label class="flabel">Condiciones exactas de entrada</label><textarea class="ftextarea" id="s-entrada" placeholder="¿Qué debe pasar exactamente para entrar? Lista los pasos en orden..."></textarea></div>
+        <div class="fg">
+          <div><label class="flabel">Lógica del Stop Loss</label><textarea class="ftextarea" id="s-sl" placeholder="¿Dónde y cómo defines el SL?"></textarea></div>
+          <div><label class="flabel">Lógica del Take Profit</label><textarea class="ftextarea" id="s-tp" placeholder="¿Dónde y cómo defines el TP? ¿Ratio objetivo?"></textarea></div>
+        </div>
+        <div class="fg1"><label class="flabel">Notas adicionales</label><textarea class="ftextarea" id="s-notas" placeholder="Horarios óptimos, pares recomendados, filtros importantes, advertencias..."></textarea></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="guardarEstrategia()">💾 Guardar estrategia</button>
+          <button class="btn btn-outline" onclick="limpiarStrat()">🗑️ Limpiar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📚 Mis estrategias guardadas</div>
+        <div id="strat-list"><div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Sin estrategias aún</div><div class="empty-sub">Agrega tu primera estrategia arriba</div></div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let API_URL = localStorage.getItem('tj_api_url') || '';
+let trades = [], strategies = [];
+let selEmo = '', selOutcome = '', selPlan = '';
+
+// ── Config ──────────────────────────
+function saveConfig() {
+  const u = document.getElementById('url-input').value.trim();
+  if (!u || !u.includes('script.google.com')) { showToast('Pega una URL válida de Apps Script', 'red'); return; }
+  localStorage.setItem('tj_api_url', u);
+  API_URL = u;
+  document.getElementById('cfg').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  initApp();
+}
+function resetConfig() {
+  if (!confirm('¿Cambiar la URL de conexión?')) return;
+  localStorage.removeItem('tj_api_url');
+  location.reload();
+}
+
+// ── Init ─────────────────────────────
+function initApp() {
+  document.getElementById('f-fecha').value = new Date().toISOString().slice(0,16);
+  syncAll();
+}
+
+// ── API ──────────────────────────────
+async function api(action, data={}) {
+  setSyncState('loading');
+  try {
+    const r = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action, ...data }) });
+    const j = await r.json();
+    setSyncState('ok');
+    if (j.error) throw new Error(j.error);
+    return j;
+  } catch(e) {
+    setSyncState('err');
+    showToast('Error de conexión: ' + e.message, 'red');
+    throw e;
+  }
+}
+function setSyncState(s) {
+  document.getElementById('sync-dot').className = 'sync-dot' + (s==='loading'?' spin':s==='err'?' err':'');
+  document.getElementById('sync-txt').textContent = s==='loading'?'Sincronizando...':s==='err'?'Sin conexión':'Sincronizado';
+}
+
+async function syncAll() {
+  loader(true);
+  try {
+    const [t, s, st] = await Promise.all([ api('getTrades'), api('getStrategies'), api('getStats') ]);
+    trades = t.trades || [];
+    strategies = s.strategies || [];
+    renderDashboard(st.stats);
+    renderHistorial();
+    renderStrategies();
+    populateStratSelect();
+  } catch(e){}
+  loader(false);
+}
+
+// ── Nav ──────────────────────────────
+function nav(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+}
+
+// ── Dashboard ────────────────────────
+function renderDashboard(st) {
+  if (!st || !st.total) {
+    ['m-total','m-wr','m-pnl','m-ratio','m-plan','m-par'].forEach(id => setEl(id,'—'));
+    return;
+  }
+  setEl('m-total', st.total);
+  const wr = st.winRate||0;
+  const wrEl = document.getElementById('m-wr');
+  wrEl.textContent = wr+'%'; wrEl.className = 'metric-val '+(wr>=45?'green':'red');
+  const pnl = parseFloat(st.pnl)||0;
+  const pnlEl = document.getElementById('m-pnl');
+  pnlEl.textContent = (pnl>=0?'+':'')+' $'+Math.abs(pnl).toFixed(2);
+  pnlEl.className = 'metric-val '+(pnl>=0?'green':'red');
+  setEl('m-ratio', st.ratio!=='—'?'1:'+st.ratio:'—');
+  const pl = st.planPct||0;
+  const plEl = document.getElementById('m-plan');
+  plEl.textContent = pl+'%'; plEl.className='metric-val '+(pl>=70?'green':pl>=50?'accent':'red');
+  setEl('m-par', st.bestPar||'—');
+
+  setBar('bar-wr','lbar-wr', wr, wr+'%');
+  setBar('bar-plan','lbar-plan', pl, pl+'%');
+  const avgW = parseFloat(st.avgWin)||0, avgL = parseFloat(st.avgLoss)||0;
+  const mx = Math.max(avgW,avgL,1);
+  setBar('bar-avgw','lbar-avgw', avgW/mx*100, '$'+avgW.toFixed(2));
+  setBar('bar-avgl','lbar-avgl', avgL/mx*100, '$'+avgL.toFixed(2));
+
+  let msg='', cls='alert-blue';
+  if (st.total>=10) {
+    if (wr>=45&&pnl>0){msg='🟢 Vas por buen camino. Win rate sólido y P&L positivo. Mantén la disciplina sin cambiar lo que funciona.';cls='alert-green';}
+    else if (wr<40){msg='🔴 Win rate bajo. Revisa si estás entrando en setups que cumplen todos los criterios del checklist. Menos trades, mejor calidad.';cls='alert-red';}
+    else if (pl<60){msg='🟡 Más del 40% de tus operaciones no siguen el plan. Trabaja la disciplina antes de enfocarte en la técnica.';cls='alert-amber';}
+    else{msg='🔵 Progreso normal. Sigue acumulando operaciones para estadísticas más confiables.';cls='alert-blue';}
+  } else { msg='📊 Llevas '+st.total+' operación'+(st.total!==1?'es':'')+'. Registra al menos 10 para obtener insights personalizados.'; }
+  const ib=document.getElementById('insight-box'); ib.textContent=msg; ib.className='alert '+cls;
+
+  const rl=document.getElementById('recent-list');
+  const recent=trades.slice(0,5);
+  rl.innerHTML=recent.length?'<div class="trade-list">'+recent.map(tradeHTML).join('')+'</div>':'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin operaciones aún</div></div>';
+}
+
+function setBar(bId,lId,pct,lbl){
+  document.getElementById(bId).style.width=Math.min(pct,100)+'%';
+  document.getElementById(lId).textContent=lbl;
+}
+
+// ── Historial ─────────────────────────
+function renderHistorial() {
+  const fo=document.getElementById('filter-outcome')?.value||'';
+  const fp=document.getElementById('filter-par')?.value||'';
+  const parSel=document.getElementById('filter-par');
+  if(parSel){
+    const pars=[...new Set(trades.map(t=>t['Par']).filter(Boolean))];
+    const cur=parSel.value;
+    parSel.innerHTML='<option value="">Todos los pares</option>'+pars.map(p=>`<option${p===cur?' selected':''}>${p}</option>`).join('');
+  }
+  let list=trades;
+  if(fo) list=list.filter(t=>t['Outcome']===fo);
+  if(fp) list=list.filter(t=>t['Par']===fp);
+  const el=document.getElementById('historial-list');
+  el.innerHTML=list.length?'<div class="trade-list">'+list.map(tradeHTML).join('')+'</div>'
+    :'<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Sin operaciones</div><div class="empty-sub">Ajusta los filtros o registra tu primera operación</div></div>';
+}
+
+function tradeHTML(t) {
+  const oc=t['Outcome']||'';
+  const icons={tp:'✅',sl:'🛑',be:'⚪',manual:'🔶'};
+  const res=parseFloat(t['Resultado'])||0;
+  const pnlCls=res>0?'pos':res<0?'neg':'zero';
+  const pnlTxt=res>0?'+$'+res.toFixed(2):res<0?'-$'+Math.abs(res).toFixed(2):'$0.00';
+  const dir=(t['Dirección']||'').toLowerCase().includes('compra')?'long':'short';
+  const fecha=t['Fecha']?new Date(t['Fecha']).toLocaleDateString('es-CO',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+  const emo=t['Emoción']?` · ${t['Emoción']}`:'' ;
+  const plan=t['SiguioPlan']==='si'?' · ✓ Plan':t['SiguioPlan']==='parcial'?' · ~ Parcial':t['SiguioPlan']==='no'?' · ✗ Sin plan':'';
+  const leccion=t['Lección']?`<div class="trade-meta" style="font-style:italic;margin-top:3px">"${(t['Lección']||'').substring(0,70)}${t['Lección']?.length>70?'...':''}"</div>`:'';
+  return `<div class="trade-item">
+    <div class="trade-badge ${oc}">${icons[oc]||'📊'}</div>
+    <div class="trade-info">
+      <div class="trade-top">
+        <span class="trade-par">${t['Par']||'—'}</span>
+        <span class="trade-dir ${dir}">${dir==='long'?'▲ Compra':'▼ Venta'}</span>
+      </div>
+      <div class="trade-meta">${fecha}${emo}${plan}</div>
+      ${leccion}
+    </div>
+    <div class="trade-pnl ${pnlCls}">${pnlTxt}</div>
+    <button class="trade-del" onclick="deleteTrade('${t['ID']}')" title="Eliminar">🗑️</button>
+  </div>`;
+}
+
+// ── Guardar trade ─────────────────────
+async function guardarTrade() {
+  const par=document.getElementById('f-par').value;
+  const parC=document.getElementById('f-par-custom').value.trim();
+  const parF=par==='otro'?parC:par;
+  if(!parF){showToast('Selecciona o escribe el par','red');return;}
+  if(!selOutcome){showToast('Selecciona el resultado de la operación','red');return;}
+  loader(true);
+  try {
+    await api('addTrade',{
+      fecha:document.getElementById('f-fecha').value,
+      par:parF,
+      direccion:document.getElementById('f-dir').value,
+      entrada:document.getElementById('f-entrada').value,
+      sl:document.getElementById('f-sl').value,
+      tp:document.getElementById('f-tp').value,
+      lote:document.getElementById('f-lote').value,
+      resultado:document.getElementById('f-resultado').value,
+      outcome:selOutcome,
+      estrategia:document.getElementById('f-estrategia').value,
+      emocion:selEmo,
+      siguioPlan:selPlan,
+      razon:document.getElementById('f-razon').value,
+      leccion:document.getElementById('f-leccion').value
+    });
+    showToast('✅ Operación guardada correctamente','green');
+    limpiarForm();
+    await syncAll();
+    nav('historial');
+  } catch(e){}
+  loader(false);
+}
+
+async function deleteTrade(id) {
+  if(!confirm('¿Eliminar esta operación? Esta acción no se puede deshacer.')) return;
+  loader(true);
+  try { await api('deleteTrade',{id}); showToast('Operación eliminada',''); await syncAll(); } catch(e){}
+  loader(false);
+}
+
+function limpiarForm() {
+  ['f-entrada','f-sl','f-tp','f-lote','f-resultado','f-razon','f-leccion','f-par-custom'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-par').value='';
+  document.getElementById('f-dir').value='compra';
+  document.getElementById('f-fecha').value=new Date().toISOString().slice(0,16);
+  selEmo=''; selOutcome=''; selPlan='';
+  document.querySelectorAll('.emo-opt').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.outcome-opt').forEach(e=>e.className='outcome-opt');
+  document.querySelectorAll('.plan-opt').forEach(e=>e.className='plan-opt');
+}
+
+// ── Estrategias ───────────────────────
+async function guardarEstrategia() {
+  const n=document.getElementById('s-nombre').value.trim();
+  if(!n){showToast('Escribe el nombre de la estrategia','red');return;}
+  loader(true);
+  try {
+    await api('addStrategy',{
+      nombre:n,timeframe:document.getElementById('s-tf').value,
+      descripcion:document.getElementById('s-desc').value,
+      indicadores:document.getElementById('s-ind').value,
+      entradaCondiciones:document.getElementById('s-entrada').value,
+      slLogica:document.getElementById('s-sl').value,
+      tpLogica:document.getElementById('s-tp').value,
+      notas:document.getElementById('s-notas').value
+    });
+    showToast('✅ Estrategia guardada','green');
+    limpiarStrat(); await syncAll();
+  } catch(e){}
+  loader(false);
+}
+
+async function deleteStrategy(id) {
+  if(!confirm('¿Eliminar esta estrategia?')) return;
+  loader(true);
+  try { await api('deleteStrategy',{id}); showToast('Estrategia eliminada',''); await syncAll(); } catch(e){}
+  loader(false);
+}
+
+function renderStrategies() {
+  const el=document.getElementById('strat-list');
+  if(!strategies.length){el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Sin estrategias aún</div><div class="empty-sub">Agrega tu primera estrategia arriba</div></div>';return;}
+  el.innerHTML='<div class="strat-list">'+strategies.map(s=>`
+    <div class="strat-card">
+      <div class="strat-header">
+        <div class="strat-name">${s['Nombre']||'Sin nombre'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="strat-tf">${s['Timeframe']||'—'}</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteStrategy('${s['ID']}')">🗑️</button>
+        </div>
+      </div>
+      ${s['Descripción']?`<p style="font-size:13px;color:var(--txt2);line-height:1.6;margin-bottom:12px">${s['Descripción']}</p>`:''}
+      <div class="strat-body">
+        ${field('Indicadores',s['Indicadores'])}
+        ${field('Condiciones de entrada',s['Condiciones de Entrada'])}
+        ${field('Stop Loss',s['Lógica SL'])}
+        ${field('Take Profit',s['Lógica TP'])}
+        ${s['Notas']?`<div style="grid-column:1/-1">${field('Notas',s['Notas'])}</div>`:''}
+      </div>
+    </div>`).join('')+'</div>';
+}
+
+function field(label,val){return val?`<div><div class="strat-field-label">${label}</div><div class="strat-field-val">${val}</div></div>`:'';}
+
+function limpiarStrat(){['s-nombre','s-desc','s-ind','s-entrada','s-sl','s-tp','s-notas'].forEach(id=>document.getElementById(id).value='');}
+
+function populateStratSelect(){
+  const sel=document.getElementById('f-estrategia');
+  sel.innerHTML='<option value="">— Ninguna / General —</option>'+strategies.map(s=>`<option>${s['Nombre']}</option>`).join('');
+}
+
+// ── Checklist ─────────────────────────
+function toggleChk(item) {
+  item.classList.toggle('done');
+  item.querySelector('.chk-box').classList.toggle('done');
+  const all=document.querySelectorAll('.chk-item').length;
+  const done=document.querySelectorAll('.chk-item.done').length;
+  const pct=all?Math.round(done/all*100):0;
+  const bar=document.getElementById('chk-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct===100?'var(--green)':pct>=70?'var(--amber)':'var(--accent)';
+  document.getElementById('chk-pct').textContent=pct+'%';
+}
+function resetChecklist(){
+  document.querySelectorAll('.chk-item').forEach(i=>{i.classList.remove('done');i.querySelector('.chk-box').classList.remove('done');});
+  document.getElementById('chk-bar').style.width='0%';
+  document.getElementById('chk-pct').textContent='0%';
+}
+
+// ── Selectors ─────────────────────────
+function selectEmo(el,val){ document.querySelectorAll('.emo-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); selEmo=val; }
+function selectOutcome(el,val){
+  document.querySelectorAll('.outcome-opt').forEach(e=>e.className='outcome-opt');
+  el.className='outcome-opt '+(val==='man'?'man':val);
+  selOutcome=val==='man'?'manual':val;
+}
+function selectPlan(el,val){ document.querySelectorAll('.plan-opt').forEach(e=>e.className='plan-opt'); el.className='plan-opt sel-'+val; selPlan=val; }
+
+// ── Helpers ───────────────────────────
+function setEl(id,val){const e=document.getElementById(id);if(e)e.textContent=val;}
+function loader(s){document.getElementById('loader').classList.toggle('show',s);}
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast '+(type?type+' ':'')+'show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── Boot ──────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  if(API_URL){ document.getElementById('cfg').style.display='none'; document.getElementById('app').classList.add('visible'); initApp(); }
+});
+</script>
+</body>
+</html>
