@@ -22,6 +22,23 @@
 html{font-size:15px;}
 body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-height:100vh;}
 
+/* LOGIN */
+#login{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-box{max-width:360px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:36px 32px;box-shadow:var(--shadow-md);text-align:center;}
+.login-icon{font-size:40px;margin-bottom:12px;}
+.login-title{font-size:20px;font-weight:700;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--txt2);margin-bottom:28px;}
+.login-input{width:100%;border:1.5px solid var(--border);border-radius:var(--r);padding:12px 14px;font-size:15px;color:var(--txt);font-family:'Inter',sans-serif;background:#fff;transition:border .2s;text-align:center;letter-spacing:.1em;margin-bottom:12px;}
+.login-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(67,97,238,.1);}
+.login-input::placeholder{letter-spacing:0;color:var(--txt3);}
+.login-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:13px;font-size:15px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s;}
+.login-btn:hover{background:#3451d1;}
+.login-error{font-size:13px;color:var(--red);margin-top:10px;display:none;}
+.login-error.show{display:block;}
+.login-attempts{font-size:11px;color:var(--txt3);margin-top:8px;}
+.login-setup{font-size:12px;color:var(--txt3);margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+.login-setup a{color:var(--accent);cursor:pointer;}
+
 /* CONFIG */
 #cfg{position:fixed;inset:0;background:#fff;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
 .cfg-box{max-width:500px;width:100%;padding:8px 0;}
@@ -242,6 +259,34 @@ body{background:var(--bg);color:var(--txt);font-family:'Inter',sans-serif;min-he
 </head>
 <body>
 
+
+<!-- LOGIN SCREEN -->
+<div id="login" style="position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">Trading Journal Pro</div>
+    <div class="login-sub">Ingresa tu contraseña para continuar</div>
+    <input class="login-input" type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')checkLogin()">
+    <button class="login-btn" onclick="checkLogin()">Ingresar →</button>
+    <div class="login-error" id="login-error">❌ Contraseña incorrecta. Intenta de nuevo.</div>
+    <div class="login-attempts" id="login-attempts"></div>
+    <div class="login-setup">¿Primera vez? <a onclick="showSetupPassword()">Configura tu contraseña aquí</a></div>
+  </div>
+</div>
+
+<!-- SETUP PASSWORD -->
+<div id="setup-pass" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:310;align-items:center;justify-content:center;padding:20px;">
+  <div class="login-box">
+    <div class="login-icon">🔑</div>
+    <div class="login-title">Crear contraseña</div>
+    <div class="login-sub">Esta contraseña protegerá tu diario. Guárdala en un lugar seguro.</div>
+    <input class="login-input" type="password" id="pass-nueva" placeholder="Nueva contraseña (mín. 6 caracteres)" style="margin-bottom:10px">
+    <input class="login-input" type="password" id="pass-confirm" placeholder="Confirmar contraseña" onkeydown="if(event.key==='Enter')savePassword()">
+    <button class="login-btn" onclick="savePassword()">Guardar contraseña →</button>
+    <div class="login-error" id="pass-error" style="display:none"></div>
+    <div class="login-setup"><a onclick="showLogin()">← Volver al login</a></div>
+  </div>
+</div>
 <!-- CONFIG SCREEN -->
 <div id="cfg">
   <div class="cfg-box">
@@ -839,9 +884,87 @@ function showToast(msg,type=''){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
+// ── Login ─────────────────────────────
+let loginAttempts = 0;
+
+function hashPass(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + c;
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+function checkLogin() {
+  const pass = document.getElementById('login-pass').value;
+  const stored = localStorage.getItem('tj_pass');
+  if (!stored) { showToast('Primero configura tu contraseña', 'red'); showSetupPassword(); return; }
+  if (hashPass(pass) === stored) {
+    loginAttempts = 0;
+    sessionStorage.setItem('tj_auth', '1');
+    document.getElementById('login').style.display = 'none';
+    bootApp();
+  } else {
+    loginAttempts++;
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    if (loginAttempts >= 3) {
+      document.getElementById('login-attempts').textContent = loginAttempts + ' intentos fallidos. Verifica tu contraseña.';
+    }
+    setTimeout(() => errEl.style.display = 'none', 3000);
+  }
+}
+
+function showSetupPassword() {
+  document.getElementById('login').style.display = 'none';
+  const sp = document.getElementById('setup-pass');
+  sp.style.display = 'flex';
+}
+
+function showLogin() {
+  document.getElementById('setup-pass').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+}
+
+function savePassword() {
+  const p1 = document.getElementById('pass-nueva').value;
+  const p2 = document.getElementById('pass-confirm').value;
+  const errEl = document.getElementById('pass-error');
+  errEl.style.display = 'none';
+  if (p1.length < 6) { errEl.textContent = '\u274C La contraseña debe tener al menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+  if (p1 !== p2) { errEl.textContent = '\u274C Las contraseñas no coinciden.'; errEl.style.display = 'block'; return; }
+  localStorage.setItem('tj_pass', hashPass(p1));
+  sessionStorage.setItem('tj_auth', '1');
+  showToast('\u2705 Contraseña guardada correctamente', 'green');
+  document.getElementById('setup-pass').style.display = 'none';
+  bootApp();
+}
+
+function bootApp() {
+  if (API_URL) {
+    document.getElementById('cfg').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('cfg').style.display = 'flex';
+  }
+}
+
 // ── Boot ──────────────────────────────
-window.addEventListener('DOMContentLoaded',()=>{
-  if(API_URL){ document.getElementById('cfg').style.display='none'; document.getElementById('app').classList.add('visible'); initApp(); }
+window.addEventListener('DOMContentLoaded', () => {
+  const auth = sessionStorage.getItem('tj_auth');
+  const hasPass = localStorage.getItem('tj_pass');
+  if (auth === '1') {
+    document.getElementById('login').style.display = 'none';
+    bootApp();
+  } else if (!hasPass) {
+    document.getElementById('login').style.display = 'flex';
+  } else {
+    document.getElementById('login').style.display = 'flex';
+  }
 });
 </script>
 </body>
